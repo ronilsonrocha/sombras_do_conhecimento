@@ -39,10 +39,14 @@ INSTALLED_APPS = [
     'django.contrib.staticfiles',
     
     #Aplicações de Terceiros
-    'restframework'
+    'rest_framework',
     
     #Minhas aplicações
-    'Caverna_de_Platao'
+    'accounts',
+    'content',
+    'feedback',
+    'progress',
+    'quiz'
 ]
 
 MIDDLEWARE = [
@@ -81,10 +85,15 @@ WSGI_APPLICATION = 'mito_de_platao.wsgi.application'
 
 DATABASES = {
     'default': {
-        'ENGINE': 'django.db.backends.sqlite3',
-        'NAME': BASE_DIR / 'db.sqlite3',
+        'ENGINE': 'django.db.backends.postgresql',
+        'NAME': 'sombras_db',
+        'USER': 'postgres',
+        'PASSWORD': '123',
+        'HOST': 'localhost',
+        'PORT': '5432',
     }
 }
+
 
 
 # Password validation
@@ -127,3 +136,6 @@ STATIC_URL = 'static/'
 # https://docs.djangoproject.com/en/5.1/ref/settings/#default-auto-field
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
+
+# Configuração para usar o modelo de usuário personalizado
+AUTH_USER_MODEL = 'accounts.User'
