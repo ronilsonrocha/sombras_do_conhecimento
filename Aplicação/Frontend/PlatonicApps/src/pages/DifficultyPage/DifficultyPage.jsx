@@ -1,7 +1,66 @@
-import React from 'react';
-import { Link } from 'react-router-dom';
+import React, { useState, useEffect } from 'react';
+import { useLocation, useNavigate } from 'react-router-dom';
 
 function DifficultyPage() {
+  const navigate = useNavigate();
+  const location = useLocation();
+  
+  const { obraId } = location.state || {}; // Pega o ID da obra passado pela rota
+
+  const [allQuestions, setAllQuestions] = useState([]);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState('');
+
+  useEffect(() => {
+    if (!obraId) {
+      setError("Nenhuma obra selecionada. Por favor, volte e selecione uma obra.");
+      return;
+    }
+
+    const fetchQuestions = async () => {
+      setLoading(true);
+      setError('');
+      try {
+        const response = await fetch(`http://127.0.0.1:8000/quiz/perguntas/by_obra/?obra_id=${obraId}`);
+        if (!response.ok) {
+          throw new Error('Falha ao buscar as perguntas do quiz.');
+        }
+        const data = await response.json();
+        if (data.status === 'success') {
+          setAllQuestions(data.perguntas);
+        } else {
+          throw new Error(data.message || 'Erro ao carregar perguntas.');
+        }
+      } catch (err) {
+        setError(err.message);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchQuestions();
+  }, [obraId]);
+
+  const handleDifficultySelect = (difficulty) => {
+    const filteredQuestions = allQuestions.filter(q => q.nivel.toLowerCase() === difficulty);
+    
+    if (filteredQuestions.length === 0) {
+      alert(`Não há perguntas de nível ${difficulty} para esta obra.`);
+      return;
+    }
+
+    // Navega para a página do quiz, passando as perguntas filtradas
+    navigate('/quiz', { state: { questions: filteredQuestions } });
+  };
+
+  if (loading) {
+    return <div className="min-h-screen bg-[#FDF6E3] flex justify-center items-center"><p className="text-2xl text-[#C48836]">Carregando perguntas...</p></div>;
+  }
+
+  if (error) {
+    return <div className="min-h-screen bg-[#FDF6E3] flex justify-center items-center"><p className="text-2xl text-red-500">{error}</p></div>;
+  }
+
   return (
     <main className="min-h-screen bg-[#FDF6E3] flex flex-col justify-center items-center p-4">
       
@@ -14,23 +73,17 @@ function DifficultyPage() {
         </div>
 
         <div className="w-2/3 flex flex-col space-y-6">
-          <Link to="/quiz" className="w-full">
-            <button className="w-full bg-[#663300] text-white font-bold py-3 px-4 rounded-lg hover:bg-opacity-80 transition-all duration-300 shadow-md">
-              Fácil
-            </button>
-          </Link>
+          <button onClick={() => handleDifficultySelect('facil')} className="w-full bg-[#663300] text-white font-bold py-3 px-4 rounded-lg hover:bg-opacity-80 transition-all duration-300 shadow-md">
+            Fácil
+          </button>
 
-          <Link to="/quiz" className="w-full">
-            <button className="w-full bg-[#663300] text-white font-bold py-3 px-4 rounded-lg hover:bg-opacity-80 transition-all duration-300 shadow-md">
-              Médio
-            </button>
-          </Link>
+          <button onClick={() => handleDifficultySelect('medio')} className="w-full bg-[#663300] text-white font-bold py-3 px-4 rounded-lg hover:bg-opacity-80 transition-all duration-300 shadow-md">
+            Médio
+          </button>
 
-          <Link to="/quiz" className="w-full">
-            <button className="w-full bg-[#663300] text-white font-bold py-3 px-4 rounded-lg hover:bg-opacity-80 transition-all duration-300 shadow-md">
-              Difícil
-            </button>
-          </Link>
+          <button onClick={() => handleDifficultySelect('dificil')} className="w-full bg-[#663300] text-white font-bold py-3 px-4 rounded-lg hover:bg-opacity-80 transition-all duration-300 shadow-md">
+            Difícil
+          </button>
         </div>
         
       </div>

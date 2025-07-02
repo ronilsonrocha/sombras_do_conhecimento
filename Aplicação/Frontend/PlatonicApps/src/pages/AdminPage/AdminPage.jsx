@@ -13,35 +13,42 @@ function AdminPage() {
   const [quizQuestion, setQuizQuestion] = useState('');
   const [quizOptions, setQuizOptions] = useState(['', '', '', '']);
   const [correctAnswer, setCorrectAnswer] = useState('');
+  const [quizDifficulty, setQuizDifficulty] = useState('facil');
+  
   const [authorName, setAuthorName] = useState('');
+  const [workName, setWorkName] = useState('');
   const [workDescription, setWorkDescription] = useState('Selecione uma obra para ver sua descrição.');
 
   const [selectedWork, setSelectedWork] = useState({ title: 'Escolha sua obra' });
+  const [works, setWorks] = useState([]);
+  const [displayedComments, setDisplayedComments] = useState([]);
+  
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState('');
 
-  const works = [
-    { 
-      title: "Mito de Platão", 
-      author: "Platão", 
-      description: "Uma famosa alegoria sobre a percepção da realidade e a busca pelo conhecimento verdadeiro, encontrada no livro 'A República'." 
-    },
-    { 
-      title: "A República", 
-      author: "Platão", 
-      description: "Um diálogo socrático que discute a justiça, a ordem e o caráter da cidade-estado ideal e do homem justo." 
-    },
-    { 
-      title: "O Banquete", 
-      author: "Platão", 
-      description: "Uma investigação sobre a natureza do amor, apresentada como uma série de discursos de homens notáveis em um simpósio." 
-    },
+  const allUserComments = [
+    { workId: 1, user: "Carlos", text: "Uma alegoria incrível sobre a percepção da realidade." },
+    { workId: 1, user: "Mariana", text: "Me fez refletir muito sobre o conhecimento e a verdade." },
+    { workId: 2, user: "Pedro", text: "Clássico indispensável para entender a filosofia ocidental." },
+    { workId: 3, user: "Ana", text: "Amei a forma como os diálogos foram construídos." },
+    { workId: 2, user: "Lucas", text: "Precisei ler duas vezes para absorver tudo, mas valeu a pena." },
   ];
-  const userComments = [
-    { user: "Carlos", text: "Uma alegoria incrível sobre a percepção da realidade." },
-    { user: "Mariana", text: "Me fez refletir muito sobre o conhecimento e a verdade." },
-    { user: "Pedro", text: "Clássico indispensável para entender a filosofia ocidental." },
-  ];
+
+  const fetchWorks = async () => {
+    try {
+      const response = await fetch('http://127.0.0.1:8000/content/obras/');
+      if (!response.ok) throw new Error('Falha ao carregar obras.');
+      const data = await response.json();
+      setWorks(data.results);
+    } catch (err) {
+      setError('Não foi possível carregar a lista de obras.');
+      console.error(err);
+    }
+  };
 
   useEffect(() => {
+    fetchWorks();
+
     function handleClickOutside(event) {
       if (popupRef.current && !popupRef.current.contains(event.target)) {
         setIsOptionsPopupOpen(false);
@@ -51,7 +58,7 @@ function AdminPage() {
     return () => {
       document.removeEventListener("mousedown", handleClickOutside);
     };
-  }, [popupRef]);
+  }, []);
 
   const handleOptionChange = (index, value) => {
     const newOptions = [...quizOptions];
@@ -61,19 +68,86 @@ function AdminPage() {
 
   const handleWorkSelection = (work) => {
     setSelectedWork(work);
-    setWorkDescription(work.description);
-    setAuthorName(work.author);
+    setWorkDescription(work.texto);
+    setAuthorName(work.nome_autor);
+    setWorkName(work.nome_obra);
     setIsDropdownOpen(false);
     setAdminView('description');
+    const filteredComments = allUserComments.filter(comment => comment.workId === work.id);
+    setDisplayedComments(filteredComments);
   };
 
   const handleAdminAction = (view) => {
     if (view === 'addWork') {
       setAuthorName('');
+      setWorkName('');
       setWorkDescription('');
     }
     setAdminView(view);
     setIsOptionsPopupOpen(false);
+  };
+
+  const handleSaveWork = async () => {
+    setLoading(true);
+    setError('');
+    const isEditing = adminView === 'editWork';
+    const url = isEditing 
+      ? `http://127.0.0.1:8000/content/obras/${selectedWork.id}/` 
+      : 'http://127.0.0.1:8000/content/obras/';
+    const method = isEditing ? 'PUT' : 'POST';
+
+    try {
+      const response = await fetch(url, {
+        method: method,
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          nome_autor: authorName,
+          nome_obra: workName,
+          texto: workDescription,
+        }),
+      });
+      if (!response.ok) throw new Error(`Falha ao ${isEditing ? 'atualizar' : 'criar'} a obra.`);
+      alert(`Obra ${isEditing ? 'atualizada' : 'criada'} com sucesso!`);
+      fetchWorks(); // Atualiza a lista de obras
+      setAdminView('description');
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleSaveQuestion = async () => {
+    setLoading(true);
+    setError('');
+    
+    const payload = {
+      texto_enunciado: quizQuestion,
+      nivel: quizDifficulty,
+      letra_correta: correctAnswer,
+      alternativas: quizOptions.map((option, index) => ({
+        letra_alternativa: String.fromCharCode(65 + index),
+        texto_alternativa: option,
+      })),
+    };
+
+    try {
+      const response = await fetch('http://127.0.0.1:8000/quiz/perguntas/', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload),
+      });
+      if (!response.ok) throw new Error('Falha ao criar a pergunta.');
+      alert('Pergunta criada com sucesso!');
+      // Limpar formulário do quiz
+      setQuizQuestion('');
+      setQuizOptions(['', '', '', '']);
+      setCorrectAnswer('');
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
@@ -105,11 +179,12 @@ function AdminPage() {
           )}
           {(adminView === 'addWork' || adminView === 'editWork') && (
             <div className="flex flex-col h-full space-y-4">
+              <input type="text" placeholder="Nome da Obra" value={workName} onChange={(e) => setWorkName(e.target.value)} className="w-full p-3 rounded-lg border-2 border-[#C48836] focus:outline-none focus:ring-2 focus:ring-amber-500" />
               <input type="text" placeholder="Nome do Autor" value={authorName} onChange={(e) => setAuthorName(e.target.value)} className="w-full p-3 rounded-lg border-2 border-[#C48836] focus:outline-none focus:ring-2 focus:ring-amber-500" />
               <textarea placeholder="Digite a descrição da obra aqui..." value={workDescription} onChange={(e) => setWorkDescription(e.target.value)} className="w-full h-full p-3 rounded-lg border-2 border-[#C48836] focus:outline-none focus:ring-2 focus:ring-amber-500 resize-none" />
               <div className="mt-auto text-center pt-4">
-                <button className="bg-[#C48836] text-white font-bold py-3 px-16 rounded-lg hover:bg-amber-700 transition-colors duration-300 shadow-md">
-                  {adminView === 'addWork' ? 'Salvar Obra' : 'Salvar Alterações'}
+                <button onClick={handleSaveWork} disabled={loading} className="bg-[#C48836] text-white font-bold py-3 px-16 rounded-lg hover:bg-amber-700 transition-colors duration-300 shadow-md disabled:opacity-50">
+                  {loading ? 'Salvando...' : (adminView === 'addWork' ? 'Salvar Obra' : 'Salvar Alterações')}
                 </button>
               </div>
             </div>
@@ -119,34 +194,41 @@ function AdminPage() {
               <textarea placeholder="Digite a pergunta do quiz aqui..." value={quizQuestion} onChange={(e) => setQuizQuestion(e.target.value)} className="w-full bg-white text-[#C48836] font-bold p-4 rounded-lg shadow-inner text-xl border-2 border-[#C48836] flex-grow resize-none mb-4" />
               <div className="grid grid-cols-2 gap-4">
                 {quizOptions.map((option, index) => (
-                  <div key={index} className="flex items-center space-x-2" onClick={() => setCorrectAnswer(String.fromCharCode(65 + index))}>
+                  <div key={index} className="flex items-center space-x-2 cursor-pointer" onClick={() => setCorrectAnswer(String.fromCharCode(65 + index))}>
                     <span className="font-bold text-lg text-[#C48836]">{String.fromCharCode(65 + index)}:</span>
                     <input type="text" placeholder={`Opção ${String.fromCharCode(65 + index)}`} value={option} onChange={(e) => handleOptionChange(index, e.target.value)} className="w-full p-2 rounded-lg border-2 border-[#C48836] focus:outline-none focus:ring-2 focus:ring-amber-500" />
                   </div>
                 ))}
               </div>
               <div className="flex items-center space-x-3 mt-4">
-                <label className="font-bold text-lg text-[#C48836]">Opção Correta:</label>
+                <label className="font-bold text-lg text-[#C48836]">Nível:</label>
+                <select value={quizDifficulty} onChange={(e) => setQuizDifficulty(e.target.value)} className="p-2 rounded-lg border-2 border-[#C48836] focus:outline-none focus:ring-2 focus:ring-amber-500">
+                  <option value="facil">Fácil</option>
+                  <option value="medio">Médio</option>
+                  <option value="dificil">Difícil</option>
+                </select>
+                <label className="font-bold text-lg text-[#C48836] ml-auto">Opção Correta:</label>
                 <div className="bg-white p-2 px-4 rounded-lg border-2 border-[#C48836] font-bold text-amber-700">{correctAnswer}</div>
               </div>
               <div className="mt-auto text-center pt-4">
-                <button className="bg-[#C48836] text-white font-bold py-3 px-16 rounded-lg hover:bg-amber-700 transition-colors duration-300 shadow-md">Salvar Questão</button>
+                <button onClick={handleSaveQuestion} disabled={loading} className="bg-[#C48836] text-white font-bold py-3 px-16 rounded-lg hover:bg-amber-700 transition-colors duration-300 shadow-md disabled:opacity-50">{loading ? 'Salvando...' : 'Salvar Questão'}</button>
               </div>
             </div>
           )}
+          {error && <p className="text-red-500 text-center mt-2">{error}</p>}
         </div>
 
         <div className="w-[45%] bg-[#C48836] rounded-[30px] shadow-lg flex flex-col items-center p-6 space-y-4">
           
           <div className="w-[85%] relative">
             <button onClick={() => setIsDropdownOpen(!isDropdownOpen)} className="w-full bg-[#FDF6E3] text-[#C48836] font-semibold py-2 px-4 rounded-lg flex justify-between items-center shadow-md">
-              <span className="truncate">{selectedWork.title}</span>
+              <span className="truncate">{selectedWork.title || 'Escolha sua obra'}</span>
               <svg className={`w-5 h-5 transition-transform duration-300 flex-shrink-0 ${isDropdownOpen ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" /></svg>
             </button>
             {isDropdownOpen && (
               <div className="absolute w-full mt-1 bg-[#FDF6E3] rounded-lg shadow-xl z-10">
-                {works.map((work, index) => (
-                  <a key={index} href="#" onClick={() => handleWorkSelection(work)} className="block px-4 py-2 text-[#C48836] hover:bg-gray-200">{work.title}</a>
+                {works.map((work) => (
+                  <a key={work.id} href="#" onClick={() => handleWorkSelection(work)} className="block px-4 py-2 text-[#C48836] hover:bg-gray-200">{work.nome_obra}</a>
                 ))}
               </div>
             )}
@@ -154,13 +236,17 @@ function AdminPage() {
           
           <div className="w-[85%] bg-[#FDF6E3] text-[#C48836] font-bold py-3 px-4 rounded-lg text-center shadow-md">Comentários</div>
 
-          <div className="w-[85%] h-full bg-[#FDF6E3] p-3 rounded-lg shadow-inner overflow-y-auto space-y-2">
-            {userComments.map((comment, index) => (
-              <div key={index} className="bg-white/50 p-2 rounded">
-                <p className="font-bold text-amber-800">{comment.user}</p>
-                <p className="text-sm text-gray-700">{comment.text}</p>
-              </div>
-            ))}
+          <div className="w-[85%] flex-grow bg-[#FDF6E3] p-3 rounded-lg shadow-inner overflow-y-auto space-y-2" style={{ maxHeight: 'calc(100% - 12rem)' }}>
+            {displayedComments.length > 0 ? (
+              displayedComments.map((comment, index) => (
+                <div key={index} className="bg-white/50 p-2 rounded">
+                  <p className="font-bold text-amber-800">{comment.user}</p>
+                  <p className="text-sm text-gray-700">{comment.text}</p>
+                </div>
+              ))
+            ) : (
+              <p className="text-center text-gray-500 p-4">Selecione uma obra para ver os comentários.</p>
+            )}
           </div>
 
           <div ref={popupRef} className="relative w-[85%]">
