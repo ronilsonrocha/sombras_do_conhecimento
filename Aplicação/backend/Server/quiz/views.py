@@ -156,6 +156,7 @@ class PerguntaViewSet(viewsets.ModelViewSet):
 
         try:
             perguntas = database_functions.get_perguntas_com_alternativas_por_nivel_e_obra(nivel, id_obra)
+            print(perguntas)
             return Response({
                 'status': 'success',
                 'perguntas': perguntas
