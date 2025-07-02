@@ -15,6 +15,7 @@ function QuizPage() {
   const [isAnswered, setIsAnswered] = useState(false);
   const [isCorrect, setIsCorrect] = useState(null);
   const [loadingQuestion, setLoadingQuestion] = useState(false);
+  const [questionError, setQuestionError] = useState(''); // Estado para erro específico da pergunta
 
   const userData = JSON.parse(localStorage.getItem('user'));
 
@@ -45,16 +46,22 @@ function QuizPage() {
       if (!questions || questions.length === 0) return;
 
       setLoadingQuestion(true);
+      setQuestionError(''); // Limpa erros anteriores
       const questionId = questions[currentQuestionIndex].id;
       
       try {
         const response = await fetch(`http://127.0.0.1:8000/quiz/perguntas/${questionId}/sql_detail/`);
-        if (!response.ok) throw new Error('Falha ao buscar detalhes da pergunta.');
+        if (!response.ok) {
+          throw new Error(`Falha ao buscar detalhes da pergunta (Status: ${response.status})`);
+        }
         const data = await response.json();
         if (data.status === 'success') {
           setCurrentQuestionDetails(data.pergunta);
+        } else {
+          throw new Error(data.message || 'Erro ao carregar os dados da pergunta.');
         }
       } catch (err) {
+        setQuestionError(err.message); // **CORREÇÃO: Guarda a mensagem de erro no estado**
         console.error(err);
       } finally {
         setLoadingQuestion(false);
@@ -159,9 +166,11 @@ function QuizPage() {
       <main className="flex p-8 space-x-8 h-[85vh]">
         
         <div className="w-[55%] bg-[#FDF6E3] rounded-[30px] p-8 shadow-lg flex flex-col justify-between border-4 border-[#C48836]">
-          {loadingQuestion || !currentQuestionDetails ? (
-            <div className="flex justify-center items-center h-full"><p>Carregando pergunta...</p></div>
-          ) : (
+          {loadingQuestion && <div className="flex justify-center items-center h-full"><p>Carregando pergunta...</p></div>}
+          
+          {questionError && <div className="flex justify-center items-center h-full"><p className="text-red-500 text-center">{questionError}</p></div>}
+
+          {!loadingQuestion && !questionError && currentQuestionDetails && (
             <>
               <div>
                 <div className="text-right text-lg font-bold text-[#C48836] mb-4">
