@@ -3,7 +3,7 @@ import { useLocation, Link } from 'react-router-dom';
 
 function QuizPage() {
   const location = useLocation();
-  const { workId, workTitle, difficulty } = location.state || {};
+  const { obraId, workTitle, difficulty } = location.state || {};
 
   const [userName, setUserName] = useState('');
   const [userComments, setUserComments] = useState([]);
@@ -29,14 +29,16 @@ function QuizPage() {
       setLoading(true);
       setError('');
       
-      if (!workId || !difficulty) {
+      if (!obraId || !difficulty) {
         setError("Informações da obra ou dificuldade não encontradas.");
         setLoading(false);
         return;
       }
 
       try {
-        const questionsResponse = await fetch(`http://localhost:8000/perguntas/nivel/${difficulty}/obra/${workId}/`);
+        const questionsResponse = await fetch(`http://127.0.0.1:8000/quiz/perguntas/by_nivel_obra/?nivel=${difficulty}&id_obra=${obraId}`,{
+          method: 'GET',
+      });
         if (!questionsResponse.ok) {
             const errorBody = await questionsResponse.text();
             throw new Error(`Falha ao buscar perguntas (Status: ${questionsResponse.status}). Resposta: ${errorBody}`);
@@ -65,7 +67,7 @@ function QuizPage() {
     };
 
     fetchInitialData();
-  }, [workId, difficulty, userData?.id]);
+  }, [obraId, difficulty, userData?.id]);
 
   const handleAnswerClick = async (alternative) => {
     if (isAnswered) return;

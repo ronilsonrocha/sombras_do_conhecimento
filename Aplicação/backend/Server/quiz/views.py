@@ -143,6 +143,26 @@ class PerguntaViewSet(viewsets.ModelViewSet):
                 'message': str(e)
             }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
+    @action(detail=False, methods=['get'], url_path='by_nivel_obra')
+    def by_nivel_obra(self, request):
+        nivel = request.query_params.get('nivel')
+        id_obra = request.query_params.get('id_obra')
+
+        if not nivel or not id_obra:
+            return Response(
+                {"erro": "Parâmetros 'nivel' e 'id_obra' são obrigatórios"},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
+        try:
+            perguntas = database_functions.get_perguntas_com_alternativas_por_nivel_e_obra(nivel, id_obra)
+            return Response({
+                'status': 'success',
+                'perguntas': perguntas
+            })
+        except Exception as e:
+            return Response({"erro": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
 class AlternativaViewSet(viewsets.ModelViewSet):
     queryset = Alternativa.objects.all()
     serializer_class = AlternativaSerializer

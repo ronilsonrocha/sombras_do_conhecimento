@@ -40,7 +40,7 @@ def get_pergunta_with_alternativas(pergunta_id):
     
     # Busca as alternativas da pergunta
     cursor.execute("""
-        SELECT id_alternativa, letra_alternativa, texto_alternativa 
+        SELECT id, letra_alternativa, texto_alternativa 
         FROM alternativas 
         WHERE id_pergunta = %s
         ORDER BY letra_alternativa
@@ -58,7 +58,7 @@ def get_pergunta_with_alternativas(pergunta_id):
         'letra_correta': pergunta[3],
         'alternativas': [
             {
-                'id_alternativa': alt[0],
+                'id': alt[0],
                 'letra': alt[1],
                 'texto': alt[2]
             } for alt in alternativas
@@ -66,6 +66,45 @@ def get_pergunta_with_alternativas(pergunta_id):
     }
     
     return result
+
+def get_perguntas_com_alternativas_por_nivel_e_obra(nivel, id_obra):
+    """Retorna todas as perguntas com alternativas, filtradas por nível e obra"""
+    conn, cursor = connect_db()
+
+    cursor.execute("""
+        SELECT p.id_pergunta, p.texto_enunciado, p.nivel, p.letra_correta,
+        a.id, a.letra_alternativa, a.texto_alternativa
+        FROM perguntas p
+        JOIN pergunta_obra po ON p.id_pergunta = po.id_pergunta
+        JOIN alternativas a ON p.id_pergunta = a.id_pergunta
+        WHERE p.nivel = %s AND po.id_obra = %s
+        ORDER BY p.id_pergunta, a.letra_alternativa
+    """, (nivel, id_obra))
+    
+    rows = cursor.fetchall()
+    cursor.close()
+    conn.close()
+
+    perguntas_dict = {}
+    for row in rows:
+        id_pergunta = row[0]
+        if id_pergunta not in perguntas_dict:
+            perguntas_dict[id_pergunta] = {
+                "id_pergunta": id_pergunta,
+                "texto_enunciado": row[1],
+                "nivel": row[2],
+                "letra_correta": row[3],
+                "alternativas": []
+            }
+        perguntas_dict[id_pergunta]["alternativas"].append({
+            "id": row[4],
+            "letra": row[5],
+            "texto": row[6]
+        })
+
+    return list(perguntas_dict.values())
+
+
 
 def create_pergunta_with_alternativas(texto_enunciado, nivel, letra_correta, alternativas):
     """
