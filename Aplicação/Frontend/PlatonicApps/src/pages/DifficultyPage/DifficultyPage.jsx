@@ -5,7 +5,7 @@ function DifficultyPage() {
   const navigate = useNavigate();
   const location = useLocation();
   
-  const { obraId } = location.state || {}; // Pega o ID da obra passado pela rota
+  const { obraId, workTitle } = location.state || {};
 
   const [allQuestions, setAllQuestions] = useState([]);
   const [loading, setLoading] = useState(false);
@@ -49,8 +49,7 @@ function DifficultyPage() {
       return;
     }
 
-    // Navega para a página do quiz, passando as perguntas filtradas
-    navigate('/quiz', { state: { questions: filteredQuestions } });
+    navigate('/quiz', { state: { questions: filteredQuestions, workId: obraId, workTitle: workTitle } });
   };
 
   if (loading) {
