@@ -3,78 +3,74 @@ import { useLocation, Link } from 'react-router-dom';
 
 function QuizPage() {
   const location = useLocation();
-  const { questions, workId, workTitle } = location.state || { questions: [], workId: null, workTitle: 'Obra' };
+  const { workId, workTitle, difficulty } = location.state || {};
 
   const [userName, setUserName] = useState('');
   const [userComments, setUserComments] = useState([]);
   const [newComment, setNewComment] = useState('');
   
+  const [questions, setQuestions] = useState([]);
   const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0);
-  const [currentQuestionDetails, setCurrentQuestionDetails] = useState(null);
   const [selectedAnswer, setSelectedAnswer] = useState(null);
   const [isAnswered, setIsAnswered] = useState(false);
   const [isCorrect, setIsCorrect] = useState(null);
-  const [loadingQuestion, setLoadingQuestion] = useState(false);
-  const [questionError, setQuestionError] = useState(''); // Estado para erro específico da pergunta
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState('');
 
   const userData = JSON.parse(localStorage.getItem('user'));
+  const currentQuestion = questions[currentQuestionIndex];
 
   useEffect(() => {
     if (userData?.nome) {
       setUserName(userData.nome);
     }
 
-    const fetchUserComments = async () => {
-      if (!userData?.id) return;
-      try {
-        const response = await fetch(`http://127.0.0.1:8000/feedback/avaliacoes/user_feedbacks/?usuario_id=${userData.id}`);
-        if (!response.ok) throw new Error('Falha ao buscar comentários.');
-        const data = await response.json();
-        if (data.status === 'success') {
-          setUserComments(data.feedbacks || []);
-        }
-      } catch (err) {
-        console.error("Erro ao buscar comentários:", err);
-      }
-    };
-
-    fetchUserComments();
-  }, [userData?.id]);
-
-  useEffect(() => {
-    const fetchQuestionDetails = async () => {
-      if (!questions || questions.length === 0) return;
-
-      setLoadingQuestion(true);
-      setQuestionError(''); // Limpa erros anteriores
-      const questionId = questions[currentQuestionIndex].id;
+    const fetchInitialData = async () => {
+      setLoading(true);
+      setError('');
       
+      if (!workId || !difficulty) {
+        setError("Informações da obra ou dificuldade não encontradas.");
+        setLoading(false);
+        return;
+      }
+
       try {
-        const response = await fetch(`http://127.0.0.1:8000/quiz/perguntas/${questionId}/sql_detail/`);
-        if (!response.ok) {
-          throw new Error(`Falha ao buscar detalhes da pergunta (Status: ${response.status})`);
+        const questionsResponse = await fetch(`http://localhost:8000/perguntas/nivel/${difficulty}/obra/${workId}/`);
+        if (!questionsResponse.ok) {
+            const errorBody = await questionsResponse.text();
+            throw new Error(`Falha ao buscar perguntas (Status: ${questionsResponse.status}). Resposta: ${errorBody}`);
         }
-        const data = await response.json();
-        if (data.status === 'success') {
-          setCurrentQuestionDetails(data.pergunta);
+        const questionsData = await questionsResponse.json();
+        if (questionsData.status === 'success' && questionsData.perguntas.length > 0) {
+          setQuestions(questionsData.perguntas);
         } else {
-          throw new Error(data.message || 'Erro ao carregar os dados da pergunta.');
+          throw new Error('Nenhuma pergunta encontrada para esta obra e dificuldade.');
+        }
+
+        if (userData?.id) {
+          const commentsResponse = await fetch(`http://127.0.0.1:8000/feedback/avaliacoes/user_feedbacks/?usuario_id=${userData.id}`);
+          if (commentsResponse.ok) {
+            const commentsData = await commentsResponse.json();
+            if (commentsData.status === 'success') {
+              setUserComments(commentsData.feedbacks || []);
+            }
+          }
         }
       } catch (err) {
-        setQuestionError(err.message); // **CORREÇÃO: Guarda a mensagem de erro no estado**
-        console.error(err);
+        setError(err.message);
       } finally {
-        setLoadingQuestion(false);
+        setLoading(false);
       }
     };
 
-    fetchQuestionDetails();
-  }, [currentQuestionIndex, questions]);
+    fetchInitialData();
+  }, [workId, difficulty, userData?.id]);
 
   const handleAnswerClick = async (alternative) => {
     if (isAnswered) return;
 
-    const answerLetter = alternative.letra;
+    const answerLetter = alternative.letra_alternativa;
     setSelectedAnswer(answerLetter);
 
     try {
@@ -83,7 +79,7 @@ function QuizPage() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           usuario_id: userData.id,
-          pergunta_id: currentQuestionDetails.id_pergunta,
+          pergunta_id: currentQuestion.id,
           resposta: answerLetter,
         }),
       });
@@ -107,7 +103,6 @@ function QuizPage() {
       setSelectedAnswer(null);
       setIsAnswered(false);
       setIsCorrect(null);
-      setCurrentQuestionDetails(null);
     } else {
       alert("Quiz finalizado!");
     }
@@ -116,10 +111,10 @@ function QuizPage() {
   const getButtonClass = (alternative) => {
     if (!isAnswered) return "bg-[#FDF6E3] hover:bg-yellow-100";
     
-    const isCorrectAnswer = alternative.letra === currentQuestionDetails.letra_correta;
+    const isCorrectAnswer = alternative.letra_alternativa === currentQuestion.letra_correta;
     if (isCorrectAnswer) return "bg-green-500 text-white";
 
-    const isSelectedAnswer = alternative.letra === selectedAnswer;
+    const isSelectedAnswer = alternative.letra_alternativa === selectedAnswer;
     if (isSelectedAnswer) return "bg-red-500 text-white";
     
     return "bg-[#FDF6E3] opacity-60";
@@ -143,13 +138,16 @@ function QuizPage() {
     }
   };
 
-  if (!questions || questions.length === 0) {
-    return <div className="min-h-screen bg-[#FDF6E3] flex justify-center items-center"><p className="text-2xl text-red-500">Nenhuma pergunta encontrada. Por favor, volte e tente novamente.</p></div>;
+  if (loading) {
+    return <div className="min-h-screen bg-[#FDF6E3] flex justify-center items-center"><p className="text-2xl text-[#C48836]">Carregando Quiz...</p></div>;
+  }
+
+  if (error) {
+    return <div className="min-h-screen bg-[#FDF6E3] flex justify-center items-center"><p className="text-2xl text-red-500 text-center">{error}</p></div>;
   }
 
   return (
     <div className="min-h-screen bg-[#FDF6E3]">
-      
       <header className="w-full h-[15vh] bg-[#C48836] flex items-center justify-between p-6 shadow-lg">
         <div className="bg-[#FDF6E3] p-3 rounded-2xl shadow max-w-xs">
           <p className="text-xl text-[#C48836]">Bem-vindo(a),</p>
@@ -164,36 +162,29 @@ function QuizPage() {
       </header>
 
       <main className="flex p-8 space-x-8 h-[85vh]">
-        
         <div className="w-[55%] bg-[#FDF6E3] rounded-[30px] p-8 shadow-lg flex flex-col justify-between border-4 border-[#C48836]">
-          {loadingQuestion && <div className="flex justify-center items-center h-full"><p>Carregando pergunta...</p></div>}
-          
-          {questionError && <div className="flex justify-center items-center h-full"><p className="text-red-500 text-center">{questionError}</p></div>}
-
-          {!loadingQuestion && !questionError && currentQuestionDetails && (
+          {currentQuestion ? (
             <>
               <div>
                 <div className="text-right text-lg font-bold text-[#C48836] mb-4">
                   {currentQuestionIndex + 1} / {questions.length}
                 </div>
                 <div className="w-full bg-[#FDF6E3] text-[#C48836] font-bold py-20 px-6 rounded-lg text-center shadow-inner text-2xl border-4 border-[#C48836] flex items-center justify-center">
-                  {currentQuestionDetails.texto_enunciado}
+                  {currentQuestion.texto_enunciado}
                 </div>
               </div>
-
               <div className="my-6 grid grid-cols-2 gap-4">
-                {currentQuestionDetails.alternativas?.map((alt) => (
+                {currentQuestion.alternativas?.map((alt) => (
                   <button
                     key={alt.id_alternativa}
                     onClick={() => handleAnswerClick(alt)}
                     disabled={isAnswered}
                     className={`p-4 rounded-lg text-lg font-semibold shadow-md transition-colors duration-300 border-2 border-[#C48836] ${getButtonClass(alt)}`}
                   >
-                    {alt.texto}
+                    {alt.texto_alternativa}
                   </button>
                 ))}
               </div>
-
               <div className="mt-auto text-center">
                 <button 
                   onClick={handleNextQuestion}
@@ -204,19 +195,14 @@ function QuizPage() {
                 </button>
               </div>
             </>
+          ) : (
+             <div className="flex justify-center items-center h-full"><p>Carregando pergunta...</p></div>
           )}
         </div>
 
         <form onSubmit={handleCommentSubmit} className="w-[45%] bg-[#C48836] rounded-[30px] shadow-lg flex flex-col items-center p-6 space-y-4">
-          
-          <div className="w-[85%] bg-[#FDF6E3] text-[#C48836] font-bold py-3 px-4 rounded-lg text-center shadow-md">
-            {workTitle}
-          </div>
-          
-          <div className="w-[85%] bg-[#FDF6E3] text-[#C48836] font-bold py-3 px-4 rounded-lg text-center shadow-md">
-            Comentários
-          </div>
-
+          <div className="w-[85%] bg-[#FDF6E3] text-[#C48836] font-bold py-3 px-4 rounded-lg text-center shadow-md">{workTitle}</div>
+          <div className="w-[85%] bg-[#FDF6E3] text-[#C48836] font-bold py-3 px-4 rounded-lg text-center shadow-md">Comentários</div>
           <div className="w-[85%] h-48 bg-[#FDF6E3] p-3 rounded-lg shadow-inner overflow-y-auto space-y-2">
             {userComments.map((comment, index) => (
               <div key={index} className="bg-white/50 p-2 rounded">
@@ -224,22 +210,17 @@ function QuizPage() {
               </div>
             ))}
           </div>
-
           <textarea
             placeholder="Escreva um novo comentário..."
             value={newComment}
             onChange={(e) => setNewComment(e.target.value)}
             className="w-[85%] h-32 bg-[#FDF6E3] text-[#C48836] placeholder-amber-800 font-semibold p-4 rounded-lg focus:outline-none focus:ring-2 focus:ring-yellow-300 shadow-md resize-none"
           ></textarea>
-
           <button type="submit" className="w-[85%] bg-[#663300] text-white font-bold py-3 rounded-lg hover:bg-opacity-80 transition-all duration-300 shadow-md">
             Enviar Comentário
           </button>
-
         </form>
-
       </main>
-
     </div>
   );
 }
