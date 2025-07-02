@@ -46,7 +46,6 @@ function LoginPage() {
       if (response.ok && data.status === 'success') {
         localStorage.setItem('user', JSON.stringify(data.user));
 
-        // Lógica de redirecionamento atualizada
         if (data.user.tipo_usuario === 'aluno') {
           navigate('/client');
         } else if (data.user.tipo_usuario === 'professor') {

@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 
 function DifficultyPage() {
@@ -7,65 +7,20 @@ function DifficultyPage() {
   
   const { obraId, workTitle } = location.state || {};
 
-  const [allQuestions, setAllQuestions] = useState([]);
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState('');
-
-  useEffect(() => {
-    const fetchQuestions = async () => {
-      setLoading(true);
-      setError('');
-      try {
-        // ENDPOINT ATUALIZADO para usar a versão SQL que busca todas as perguntas
-        const response = await fetch(`http://127.0.0.1:8000/quiz/perguntas/sql_all/`);
-        
-        if (!response.ok) {
-          let errorData;
-          try {
-            errorData = await response.json();
-          } catch (e) {
-            throw new Error(`Erro no servidor: Status ${response.status}`);
-          }
-          throw new Error(errorData.message || `Falha ao buscar as perguntas do quiz (Status: ${response.status})`);
-        }
-
-        const data = await response.json();
-        if (data.status === 'success') {
-          // Agora guardamos todas as perguntas de todas as obras
-          setAllQuestions(data.perguntas || []);
-        } else {
-          throw new Error(data.message || 'Erro ao carregar perguntas.');
-        }
-      } catch (err) {
-        setError(err.message);
-        console.error("Erro detalhado:", err);
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    fetchQuestions();
-  }, []); // A dependência de obraId foi removida, pois o endpoint busca tudo
-
   const handleDifficultySelect = (difficulty) => {
-    // AVISO: A lógica agora filtra a partir de TODAS as perguntas, não apenas da obra selecionada.
-    const filteredQuestions = allQuestions.filter(q => q.nivel.toLowerCase() === difficulty);
-    
-    if (filteredQuestions.length === 0) {
-      alert(`Não há perguntas de nível ${difficulty} em nenhuma obra.`);
+    if (!obraId) {
+      alert("Erro: Nenhuma obra foi selecionada. Por favor, volte à tela anterior.");
       return;
     }
-
-    navigate('/quiz', { state: { questions: filteredQuestions, workId: obraId, workTitle: workTitle } });
+    
+    navigate('/quiz', { 
+      state: { 
+        obraId: obraId, 
+        workTitle: workTitle,
+        difficulty: difficulty 
+      } 
+    });
   };
-
-  if (loading) {
-    return <div className="min-h-screen bg-[#FDF6E3] flex justify-center items-center"><p className="text-2xl text-[#C48836]">Carregando perguntas...</p></div>;
-  }
-
-  if (error) {
-    return <div className="min-h-screen bg-[#FDF6E3] flex justify-center items-center"><p className="text-2xl text-red-500">{error}</p></div>;
-  }
 
   return (
     <main className="min-h-screen bg-[#FDF6E3] flex flex-col justify-center items-center p-4">
