@@ -84,7 +84,7 @@ def update_user(user_id, nome=None, email=None, tipo_usuario=None):
 def authenticate_user(email, senha):
     """Autentica um usuário pelo email e senha"""
     conn, cursor = connect_db()
-    cursor.execute("SELECT id_usuario, nome, tipo_usuario FROM usuarios WHERE email = %s AND senha = %s", (email, senha))
+    cursor.execute("SELECT id, nome, tipo_usuario FROM usuarios WHERE email = %s AND password = %s", (email, senha))
     user = cursor.fetchone()
     cursor.close()
     conn.close()
@@ -105,7 +105,7 @@ def reset_password(email, nova_senha):
             
         # Atualizar a senha
         cursor.execute(
-            "UPDATE usuarios SET senha = %s WHERE email = %s",
+            "UPDATE usuarios SET password = %s WHERE email = %s",
             (nova_senha, email)
         )
         

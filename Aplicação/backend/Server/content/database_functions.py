@@ -78,3 +78,18 @@ def get_obras_by_user(usuario_id):
     cursor.close()
     conn.close()
     return obras
+
+def update_obra(id, nome_obra, nome_autor, novo_texto):
+    conn, cursor = connect_db()
+    try:
+        cursor.execute("UPDATE obras set texto = %s, nome_obra = %s, nome_autor = %s where id = %s", (novo_texto, nome_obra, nome_autor, id))
+        rows_affected = cursor.rowcount
+        conn.commit()
+        
+        return rows_affected > 0
+    except psycopg2.Error as e:
+        conn.rollback()
+        raise e
+    finally:
+        cursor.close()
+        conn.close()

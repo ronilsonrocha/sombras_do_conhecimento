@@ -74,6 +74,38 @@ class ObraViewSet(viewsets.ModelViewSet):
                 'status': 'error',
                 'message': str(e)
             }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+    
+    @action(detail=False, methods=['put'])
+    def update_obra_text(self, request):
+        try:
+            id = request.data.get('id')
+            nome_obra = request.data.get('nome_obra')
+            nome_autor = request.data.get('nome_autor')
+            novo_texto = request.data.get('texto')
+            
+            if not nome_obra or not nome_autor or not novo_texto:
+                return Response({
+                    'status': 'error',
+                    'message': 'Nome da obra, nome do autor e novo texto são obrigatórios'
+                }, status=status.HTTP_400_BAD_REQUEST)
+            
+            result = database_functions.update_obra(id, nome_obra, nome_autor, novo_texto)
+            
+            if result:
+                return Response({
+                    'status': 'success',
+                    'message': 'Texto da obra atualizado com sucesso'
+                })
+            else:
+                return Response({
+                    'status': 'error',
+                    'message': 'Obra não encontrada ou nenhuma alteração foi feita'
+                }, status=status.HTTP_404_NOT_FOUND)
+        except Exception as e:
+            return Response({
+                'status': 'error',
+                'message': str(e)
+            }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
 class UsuarioObraViewSet(viewsets.ModelViewSet):
     queryset = UsuarioObra.objects.all()
