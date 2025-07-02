@@ -89,3 +89,33 @@ def authenticate_user(email, senha):
     cursor.close()
     conn.close()
     return user
+
+def reset_password(email, nova_senha):
+    conn, cursor = connect_db()
+    try:
+        # Verificar se o usuário existe
+        cursor.execute(
+            "SELECT id_usuario FROM usuarios WHERE email = %s",
+            (email,)
+        )
+        user = cursor.fetchone()
+        
+        if not user:
+            return False
+            
+        # Atualizar a senha
+        cursor.execute(
+            "UPDATE usuarios SET senha = %s WHERE email = %s",
+            (nova_senha, email)
+        )
+        
+        rows_affected = cursor.rowcount
+        conn.commit()
+        
+        return rows_affected > 0
+    except psycopg2.Error as e:
+        conn.rollback()
+        raise e
+    finally:
+        cursor.close()
+        conn.close()
