@@ -60,3 +60,33 @@ class UserViewSet(viewsets.ModelViewSet):
                 'status': 'error',
                 'message': str(e)
             }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+    
+    @action(detail=False, methods=['post'])
+    def reset_password(self, request):
+        try:
+            email = request.data.get('email')
+            nova_senha = request.data.get('nova_senha')
+            
+            if not email or not nova_senha:
+                return Response({
+                    'status': 'error',
+                    'message': 'Email e nova senha são obrigatórios'
+                }, status=status.HTTP_400_BAD_REQUEST)
+            
+            result = database_functions.reset_password(email, nova_senha)
+            
+            if result:
+                return Response({
+                    'status': 'success',
+                    'message': 'Senha redefinida com sucesso'
+                })
+            else:
+                return Response({
+                    'status': 'error',
+                    'message': 'Usuário não encontrado'
+                }, status=status.HTTP_404_NOT_FOUND)
+        except Exception as e:
+            return Response({
+                'status': 'error',
+                'message': str(e)
+            }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
