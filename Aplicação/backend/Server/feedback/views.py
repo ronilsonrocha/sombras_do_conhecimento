@@ -18,10 +18,9 @@ class AvaliacaoViewSet(viewsets.ModelViewSet):
     def submit_feedback(self, request):
         try:
             usuario_id = request.data.get('usuario_id')
-            pontos_experiencia = request.data.get('pontos_experiencia')
             comentarios = request.data.get('comentarios')
             
-            avaliacao_id = database_functions.submit_feedback(usuario_id, pontos_experiencia, comentarios)
+            avaliacao_id = database_functions.submit_feedback(usuario_id, comentarios)
             return Response({
                 'status': 'success',
                 'avaliacao_id': avaliacao_id

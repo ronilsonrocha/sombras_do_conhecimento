@@ -60,12 +60,16 @@ class UserViewSet(viewsets.ModelViewSet):
                 'status': 'error',
                 'message': str(e)
             }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
-    
+        
+    # accounts/views.py
     @action(detail=False, methods=['post'])
     def reset_password(self, request):
         try:
+            print("Dados recebidos:", request.data)  # Log para debug
             email = request.data.get('email')
             nova_senha = request.data.get('nova_senha')
+            
+            print(f"Email: {email}, Nova senha: {nova_senha}")  # Log para debug
             
             if not email or not nova_senha:
                 return Response({
@@ -73,7 +77,16 @@ class UserViewSet(viewsets.ModelViewSet):
                     'message': 'Email e nova senha são obrigatórios'
                 }, status=status.HTTP_400_BAD_REQUEST)
             
+            # Verificar se a função existe
+            if not hasattr(database_functions, 'reset_password'):
+                print("Função reset_password não encontrada!")  # Log para debug
+                return Response({
+                    'status': 'error',
+                    'message': 'Função reset_password não implementada'
+                }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+            
             result = database_functions.reset_password(email, nova_senha)
+            print("Resultado:", result)  # Log para debug
             
             if result:
                 return Response({
@@ -86,6 +99,9 @@ class UserViewSet(viewsets.ModelViewSet):
                     'message': 'Usuário não encontrado'
                 }, status=status.HTTP_404_NOT_FOUND)
         except Exception as e:
+            print("Erro ao redefinir senha:", str(e))  # Log para debug
+            import traceback
+            traceback.print_exc()  # Imprime o traceback completo
             return Response({
                 'status': 'error',
                 'message': str(e)

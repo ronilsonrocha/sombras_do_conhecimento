@@ -69,18 +69,51 @@ class PerguntaViewSet(viewsets.ModelViewSet):
             letra_correta = request.data.get('letra_correta')
             alternativas = request.data.get('alternativas', [])
             
+            # Validar os dados
+            if not texto_enunciado:
+                return Response({
+                    'status': 'error',
+                    'message': 'O texto do enunciado é obrigatório'
+                }, status=status.HTTP_400_BAD_REQUEST)
+            
+            if not letra_correta or letra_correta not in ['A', 'B', 'C', 'D']:
+                return Response({
+                    'status': 'error',
+                    'message': 'A letra correta deve ser A, B, C ou D'
+                }, status=status.HTTP_400_BAD_REQUEST)
+            
+            if len(alternativas) < 2:
+                return Response({
+                    'status': 'error',
+                    'message': 'É necessário fornecer pelo menos duas alternativas'
+                }, status=status.HTTP_400_BAD_REQUEST)
+            
+            # Verificar se cada alternativa tem letra e texto
+            for alt in alternativas:
+                if 'letra' not in alt or 'texto' not in alt:
+                    return Response({
+                        'status': 'error',
+                        'message': 'Cada alternativa deve ter letra e texto'
+                    }, status=status.HTTP_400_BAD_REQUEST)
+            
+            # Criar a pergunta com alternativas
             pergunta_id = database_functions.create_pergunta_with_alternativas(
                 texto_enunciado, nivel, letra_correta, alternativas
             )
+            
             return Response({
                 'status': 'success',
                 'pergunta_id': pergunta_id
             }, status=status.HTTP_201_CREATED)
         except Exception as e:
+            print("Erro ao criar pergunta:", str(e))
+            import traceback
+            traceback.print_exc()
             return Response({
                 'status': 'error',
                 'message': str(e)
             }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
     
     @action(detail=True, methods=['get'])
     def by_obra(self, request, pk=None):

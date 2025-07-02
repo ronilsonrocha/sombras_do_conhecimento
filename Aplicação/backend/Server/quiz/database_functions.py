@@ -72,26 +72,33 @@ def create_pergunta_with_alternativas(texto_enunciado, nivel, letra_correta, alt
     Cria uma nova pergunta com suas alternativas
     
     Args:
-        texto_enunciado: Texto da pergunta
-        nivel: Nível de dificuldade (facil, medio, dificil)
-        letra_correta: Letra da alternativa correta (A, B, C, D)
-        alternativas: Lista de dicionários com as alternativas no formato:
-                     [{'letra': 'A', 'texto': 'Texto da alternativa A'}, ...]
+        texto_enunciado (str): Texto da pergunta
+        nivel (str): Nível de dificuldade (facil, medio, dificil)
+        letra_correta (str): Letra da alternativa correta (A, B, C, D)
+        alternativas (list): Lista de dicionários com as alternativas
+            [
+                {"letra": "A", "texto": "Texto da alternativa A"},
+                {"letra": "B", "texto": "Texto da alternativa B"},
+                ...
+            ]
+    
+    Returns:
+        int: ID da pergunta criada
     """
     conn, cursor = connect_db()
     try:
-        # Insere a pergunta
+        # Inserir a pergunta
         cursor.execute(
             "INSERT INTO perguntas (texto_enunciado, nivel, letra_correta) VALUES (%s, %s, %s) RETURNING id_pergunta",
             (texto_enunciado, nivel, letra_correta)
         )
         pergunta_id = cursor.fetchone()[0]
         
-        # Insere as alternativas
+        # Inserir as alternativas
         for alt in alternativas:
             cursor.execute(
-                "INSERT INTO alternativas (letra_alternativa, texto_alternativa, id_pergunta) VALUES (%s, %s, %s)",
-                (alt['letra'], alt['texto'], pergunta_id)
+                "INSERT INTO alternativas (id_pergunta, letra_alternativa, texto_alternativa) VALUES (%s, %s, %s)",
+                (pergunta_id, alt["letra"], alt["texto"])
             )
         
         conn.commit()

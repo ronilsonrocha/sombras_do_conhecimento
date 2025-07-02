@@ -12,13 +12,13 @@ def connect_db():
     )
     return conn, conn.cursor()
 
-def submit_feedback(usuario_id, pontos_experiencia, comentarios=None):
+def submit_feedback(usuario_id, comentarios):
     """Registra uma avaliação/feedback de um usuário"""
     conn, cursor = connect_db()
     try:
         cursor.execute(
-            "INSERT INTO avaliacao (pontos_experiencia, comentarios, id_usuario) VALUES (%s, %s, %s) RETURNING id_avaliacao",
-            (pontos_experiencia, comentarios, usuario_id)
+            "INSERT INTO avaliacao (comentarios, id_usuario) VALUES (%s, %s) RETURNING id",
+            (comentarios, usuario_id)
         )
         avaliacao_id = cursor.fetchone()[0]
         conn.commit()
@@ -34,10 +34,10 @@ def get_all_feedbacks():
     """Retorna todas as avaliações/feedbacks"""
     conn, cursor = connect_db()
     cursor.execute("""
-        SELECT a.id_avaliacao, a.pontos_experiencia, a.comentarios, a.id_usuario, u.nome
+        SELECT a.id, a.pontos_experiencia, a.comentarios, a.id_usuario, u.nome
         FROM avaliacao a
         JOIN usuarios u ON a.id_usuario = u.id_usuario
-        ORDER BY a.id_avaliacao DESC
+        ORDER BY a.id DESC
     """)
     avaliacoes = cursor.fetchall()
     cursor.close()
@@ -45,7 +45,7 @@ def get_all_feedbacks():
     
     return [
         {
-            'id_avaliacao': a[0],
+            'id': a[0],
             'pontos_experiencia': a[1],
             'comentarios': a[2],
             'id_usuario': a[3],
@@ -57,10 +57,10 @@ def get_user_feedbacks(usuario_id):
     """Retorna todas as avaliações/feedbacks de um usuário específico"""
     conn, cursor = connect_db()
     cursor.execute("""
-        SELECT id_avaliacao, pontos_experiencia, comentarios
+        SELECT id, pontos_experiencia, comentarios
         FROM avaliacao
         WHERE id_usuario = %s
-        ORDER BY id_avaliacao DESC
+        ORDER BY id DESC
     """, (usuario_id,))
     avaliacoes = cursor.fetchall()
     cursor.close()
@@ -68,7 +68,7 @@ def get_user_feedbacks(usuario_id):
     
     return [
         {
-            'id_avaliacao': a[0],
+            'id': a[0],
             'pontos_experiencia': a[1],
             'comentarios': a[2]
         } for a in avaliacoes
