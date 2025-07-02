@@ -11,7 +11,6 @@ function QuizPage() {
   
   const [questions, setQuestions] = useState([]);
   const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0);
-  const [currentQuestionDetails, setCurrentQuestionDetails] = useState(null);
   const [selectedAnswer, setSelectedAnswer] = useState(null);
   const [isAnswered, setIsAnswered] = useState(false);
   const [isCorrect, setIsCorrect] = useState(null);
@@ -19,6 +18,7 @@ function QuizPage() {
   const [error, setError] = useState('');
 
   const userData = JSON.parse(localStorage.getItem('user'));
+  const currentQuestion = questions[currentQuestionIndex];
 
   useEffect(() => {
     if (userData?.nome) {
@@ -69,30 +69,11 @@ function QuizPage() {
     fetchInitialData();
   }, [obraId, difficulty, userData?.id]);
 
-  useEffect(() => {
-    if (!questions || questions.length === 0) return;
-
-    const fetchQuestionDetails = async () => {
-      const questionId = questions[currentQuestionIndex].id;
-      try {
-        const response = await fetch(`http://127.0.0.1:8000/quiz/perguntas/${questionId}/sql_detail/`);
-        if (!response.ok) throw new Error('Falha ao buscar detalhes da pergunta.');
-        const data = await response.json();
-        if (data) {
-          setCurrentQuestionDetails(data);
-        }
-      } catch (err) {
-        console.error("Erro ao buscar detalhes da pergunta:", err);
-      }
-    };
-
-    fetchQuestionDetails();
-  }, [currentQuestionIndex, questions]);
-
   const handleAnswerClick = async (alternative) => {
     if (isAnswered) return;
 
-    const answerLetter = alternative.letra;
+    // ALTERADO: Usando 'alternative.letra' em vez de 'alternative.letra_alternativa'
+    const answerLetter = alternative.letra; 
     setSelectedAnswer(answerLetter);
 
     try {
@@ -101,7 +82,7 @@ function QuizPage() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           usuario_id: userData.id,
-          pergunta_id: currentQuestionDetails.id_pergunta,
+          pergunta_id: currentQuestion.id_pergunta, // Use 'id_pergunta' conforme seu backend
           resposta: answerLetter,
         }),
       });
@@ -125,19 +106,20 @@ function QuizPage() {
       setSelectedAnswer(null);
       setIsAnswered(false);
       setIsCorrect(null);
-      setCurrentQuestionDetails(null);
     } else {
       alert("Quiz finalizado!");
     }
   };
 
   const getButtonClass = (alternative) => {
-    if (!isAnswered || !currentQuestionDetails) return "bg-[#FDF6E3] hover:bg-yellow-100";
+    if (!isAnswered) return "bg-[#FDF6E3] hover:bg-yellow-100";
     
-    const isCorrectAnswer = alternative.letra === currentQuestionDetails.letra_correta;
+    // ALTERADO: Usando 'alternative.letra' em vez de 'alternative.letra_alternativa'
+    const isCorrectAnswer = alternative.letra === currentQuestion.letra_correta; 
     if (isCorrectAnswer) return "bg-green-500 text-white";
 
-    const isSelectedAnswer = alternative.letra === selectedAnswer;
+    // ALTERADO: Usando 'alternative.letra' em vez de 'alternative.letra_alternativa'
+    const isSelectedAnswer = alternative.letra === selectedAnswer; 
     if (isSelectedAnswer) return "bg-red-500 text-white";
     
     return "bg-[#FDF6E3] opacity-60";
@@ -180,33 +162,31 @@ function QuizPage() {
         <div className="w-44">
            <Link to="/client">
             <button className="bg-[#663300] text-white font-bold py-3 px-10 rounded-lg hover:bg-opacity-80 transition-all duration-300 shadow-md">Voltar</button>
-           </Link>
+          </Link>
         </div>
       </header>
 
       <main className="flex p-8 space-x-8 h-[85vh]">
         <div className="w-[55%] bg-[#FDF6E3] rounded-[30px] p-8 shadow-lg flex flex-col justify-between border-4 border-[#C48836]">
-          {!currentQuestionDetails ? (
-             <div className="flex justify-center items-center h-full"><p>Carregando pergunta...</p></div>
-          ) : (
+          {currentQuestion ? (
             <>
               <div>
                 <div className="text-right text-lg font-bold text-[#C48836] mb-4">
                   {currentQuestionIndex + 1} / {questions.length}
                 </div>
                 <div className="w-full bg-[#FDF6E3] text-[#C48836] font-bold py-20 px-6 rounded-lg text-center shadow-inner text-2xl border-4 border-[#C48836] flex items-center justify-center">
-                  {currentQuestionDetails.texto_enunciado}
+                  {currentQuestion.texto_enunciado}
                 </div>
               </div>
               <div className="my-6 grid grid-cols-2 gap-4">
-                {currentQuestionDetails.alternativas?.map((alt) => (
+                {currentQuestion.alternativas?.map((alt) => (
                   <button
-                    key={alt.id_alternativa}
+                    key={alt.id} // ALTERADO: Usando 'alt.id' em vez de 'alt.id_alternativa'
                     onClick={() => handleAnswerClick(alt)}
                     disabled={isAnswered}
                     className={`p-4 rounded-lg text-lg font-semibold shadow-md transition-colors duration-300 border-2 border-[#C48836] ${getButtonClass(alt)}`}
                   >
-                    {alt.texto}
+                    {alt.texto} {/* ALTERADO: Usando 'alt.texto' em vez de 'alt.texto_alternativa' */}
                   </button>
                 ))}
               </div>
@@ -220,6 +200,8 @@ function QuizPage() {
                 </button>
               </div>
             </>
+          ) : (
+              <div className="flex justify-center items-center h-full"><p>Carregando pergunta...</p></div>
           )}
         </div>
 
