@@ -8,11 +8,11 @@ class AvaliacaoSerializer(serializers.ModelSerializer):
     
     class Meta:
         model = Avaliacao
-        fields = ['id', 'pontos_experiencia', 'comentarios', 'usuario', 'usuario_id']
+        fields = ['id', 'comentarios', 'usuario', 'usuario_id']
 
 class AvaliacaoCreateSerializer(serializers.ModelSerializer):
     usuario_id = serializers.IntegerField()
     
     class Meta:
         model = Avaliacao
-        fields = ['pontos_experiencia', 'comentarios', 'usuario_id']
+        fields = ['comentarios', 'usuario_id']

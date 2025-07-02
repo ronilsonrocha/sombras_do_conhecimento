@@ -95,7 +95,7 @@ def reset_password(email, nova_senha):
     try:
         # Verificar se o usuário existe
         cursor.execute(
-            "SELECT id_usuario FROM usuarios WHERE email = %s",
+            "SELECT id FROM usuarios WHERE email = %s",
             (email,)
         )
         user = cursor.fetchone()
