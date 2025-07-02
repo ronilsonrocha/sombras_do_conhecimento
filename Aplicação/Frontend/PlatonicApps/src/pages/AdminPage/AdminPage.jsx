@@ -36,10 +36,10 @@ function AdminPage() {
 
   const fetchWorks = async () => {
     try {
-      const response = await fetch('http://127.0.0.1:8000/content/obras/');
+      const response = await fetch('http://127.0.0.1:8000/content/obras/sql_all/');
       if (!response.ok) throw new Error('Falha ao carregar obras.');
       const data = await response.json();
-      setWorks(data.results);
+      setWorks(data.obras || []);
     } catch (err) {
       setError('Não foi possível carregar a lista de obras.');
       console.error(err);
@@ -108,7 +108,7 @@ function AdminPage() {
       });
       if (!response.ok) throw new Error(`Falha ao ${isEditing ? 'atualizar' : 'criar'} a obra.`);
       alert(`Obra ${isEditing ? 'atualizada' : 'criada'} com sucesso!`);
-      fetchWorks(); // Atualiza a lista de obras
+      fetchWorks();
       setAdminView('description');
     } catch (err) {
       setError(err.message);
@@ -126,23 +126,28 @@ function AdminPage() {
       nivel: quizDifficulty,
       letra_correta: correctAnswer,
       alternativas: quizOptions.map((option, index) => ({
-        letra_alternativa: String.fromCharCode(65 + index),
-        texto_alternativa: option,
+        letra: String.fromCharCode(65 + index),
+        texto: option,
       })),
     };
 
     try {
-      const response = await fetch('http://127.0.0.1:8000/quiz/perguntas/', {
+      const response = await fetch('http://127.0.0.1:8000/quiz/perguntas/sql_create/', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(payload),
       });
       if (!response.ok) throw new Error('Falha ao criar a pergunta.');
-      alert('Pergunta criada com sucesso!');
-      // Limpar formulário do quiz
-      setQuizQuestion('');
-      setQuizOptions(['', '', '', '']);
-      setCorrectAnswer('');
+      
+      const data = await response.json();
+      if (data.status === 'success') {
+        alert(`Pergunta criada com sucesso! ID: ${data.pergunta_id}`);
+        setQuizQuestion('');
+        setQuizOptions(['', '', '', '']);
+        setCorrectAnswer('');
+      } else {
+        throw new Error(data.message || 'Erro desconhecido ao criar pergunta.');
+      }
     } catch (err) {
       setError(err.message);
     } finally {
