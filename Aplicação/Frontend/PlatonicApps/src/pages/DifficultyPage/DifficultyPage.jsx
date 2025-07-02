@@ -12,40 +12,47 @@ function DifficultyPage() {
   const [error, setError] = useState('');
 
   useEffect(() => {
-    if (!obraId) {
-      setError("Nenhuma obra selecionada. Por favor, volte e selecione uma obra.");
-      return;
-    }
-
     const fetchQuestions = async () => {
       setLoading(true);
       setError('');
       try {
-        const response = await fetch(`http://127.0.0.1:8000/quiz/perguntas/by_obra/?obra_id=${obraId}`);
+        // ENDPOINT ATUALIZADO para usar a versão SQL que busca todas as perguntas
+        const response = await fetch(`http://127.0.0.1:8000/quiz/perguntas/sql_all/`);
+        
         if (!response.ok) {
-          throw new Error('Falha ao buscar as perguntas do quiz.');
+          let errorData;
+          try {
+            errorData = await response.json();
+          } catch (e) {
+            throw new Error(`Erro no servidor: Status ${response.status}`);
+          }
+          throw new Error(errorData.message || `Falha ao buscar as perguntas do quiz (Status: ${response.status})`);
         }
+
         const data = await response.json();
         if (data.status === 'success') {
-          setAllQuestions(data.perguntas);
+          // Agora guardamos todas as perguntas de todas as obras
+          setAllQuestions(data.perguntas || []);
         } else {
           throw new Error(data.message || 'Erro ao carregar perguntas.');
         }
       } catch (err) {
         setError(err.message);
+        console.error("Erro detalhado:", err);
       } finally {
         setLoading(false);
       }
     };
 
     fetchQuestions();
-  }, [obraId]);
+  }, []); // A dependência de obraId foi removida, pois o endpoint busca tudo
 
   const handleDifficultySelect = (difficulty) => {
+    // AVISO: A lógica agora filtra a partir de TODAS as perguntas, não apenas da obra selecionada.
     const filteredQuestions = allQuestions.filter(q => q.nivel.toLowerCase() === difficulty);
     
     if (filteredQuestions.length === 0) {
-      alert(`Não há perguntas de nível ${difficulty} para esta obra.`);
+      alert(`Não há perguntas de nível ${difficulty} em nenhuma obra.`);
       return;
     }
 
