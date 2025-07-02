@@ -44,13 +44,15 @@ function LoginPage() {
       const data = await response.json();
 
       if (response.ok && data.status === 'success') {
-        // **NOVA LINHA: Salva os dados do usuário no localStorage**
         localStorage.setItem('user', JSON.stringify(data.user));
 
+        // Lógica de redirecionamento atualizada
         if (data.user.tipo_usuario === 'aluno') {
           navigate('/client');
-        } else {
+        } else if (data.user.tipo_usuario === 'professor') {
           navigate('/admin');
+        } else {
+          setError('Tipo de usuário desconhecido.');
         }
       } else {
         setError(data.message || 'Ocorreu um erro ao tentar fazer login.');

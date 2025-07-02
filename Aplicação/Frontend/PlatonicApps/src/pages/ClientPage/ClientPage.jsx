@@ -26,7 +26,7 @@ function ClientPage() {
         const response = await fetch('http://127.0.0.1:8000/content/obras/');
         if (!response.ok) throw new Error('Falha ao buscar obras.');
         const data = await response.json();
-        setWorks(data.results);
+        setWorks(data.results || []);
       } catch (err) {
         setError(err.message);
       } finally {
@@ -41,7 +41,7 @@ function ClientPage() {
         if (!response.ok) throw new Error('Falha ao buscar comentários.');
         const data = await response.json();
         if (data.status === 'success') {
-          setUserComments(data.feedbacks);
+          setUserComments(data.feedbacks || []);
         }
       } catch (err) {
         console.error("Erro ao buscar comentários:", err);
@@ -98,8 +98,7 @@ function ClientPage() {
       alert("Por favor, selecione uma obra primeiro!");
       return;
     }
-    // Navega para a página de dificuldade, passando o ID da obra no estado da rota
-    navigate('/difficulty', { state: { obraId: selectedWork.id } });
+    navigate('/difficulty', { state: { obraId: selectedWork.id, workTitle: selectedWork.nome_obra } });
   };
 
   return (
@@ -178,6 +177,13 @@ function ClientPage() {
             onChange={(e) => setNewComment(e.target.value)}
             className="w-[85%] h-32 bg-[#FDF6E3] text-[#C48836] placeholder-amber-800 font-semibold p-4 rounded-lg focus:outline-none focus:ring-2 focus:ring-yellow-300 shadow-md resize-none"
           ></textarea>
+
+          <button 
+            type="submit"
+            className="w-[85%] bg-[#FDF6E3] text-[#C48836] font-bold py-3 rounded-lg hover:bg-yellow-100 transition-all duration-300 shadow-md"
+          >
+            Enviar Comentário
+          </button>
 
           <button 
             type="button" 
