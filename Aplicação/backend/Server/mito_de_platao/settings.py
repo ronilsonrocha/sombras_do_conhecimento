@@ -40,6 +40,7 @@ INSTALLED_APPS = [
     
     #Aplicações de Terceiros
     'rest_framework',
+    'corsheaders',
     
     #Minhas aplicações
     'accounts',
@@ -57,6 +58,7 @@ MIDDLEWARE = [
     'django.contrib.auth.middleware.AuthenticationMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
+    'corsheaders.middleware.CorsMiddleware'
 ]
 
 ROOT_URLCONF = 'mito_de_platao.urls'
@@ -139,3 +141,32 @@ DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
 # Configuração para usar o modelo de usuário personalizado
 AUTH_USER_MODEL = 'accounts.User'
+
+# Permitir todas as origens (para desenvolvimento)
+CORS_ALLOW_ALL_ORIGINS = True
+
+# Permitir credenciais
+CORS_ALLOW_CREDENTIALS = True
+
+# Permitir métodos
+CORS_ALLOW_METHODS = [
+    'DELETE',
+    'GET',
+    'OPTIONS',
+    'PATCH',
+    'POST',
+    'PUT',
+]
+
+# Permitir headers
+CORS_ALLOW_HEADERS = [
+    'accept',
+    'accept-encoding',
+    'authorization',
+    'content-type',
+    'dnt',
+    'origin',
+    'user-agent',
+    'x-csrftoken',
+    'x-requested-with',
+]

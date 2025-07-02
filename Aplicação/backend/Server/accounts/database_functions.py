@@ -35,7 +35,7 @@ def create_user(nome, email, senha, tipo_usuario):
     conn, cursor = connect_db()
     try:
         cursor.execute(
-            "INSERT INTO usuarios (nome, email, senha, tipo_usuario) VALUES (%s, %s, %s, %s) RETURNING id_usuario",
+            "INSERT INTO usuarios (nome, email, password, tipo_usuario) VALUES (%s, %s, %s, %s) RETURNING id",
             (nome, email, senha, tipo_usuario)
         )
         user_id = cursor.fetchone()[0]
