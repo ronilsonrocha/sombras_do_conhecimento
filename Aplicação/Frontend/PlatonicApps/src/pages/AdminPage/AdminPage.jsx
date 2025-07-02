@@ -19,7 +19,7 @@ function AdminPage() {
   const [workName, setWorkName] = useState('');
   const [workDescription, setWorkDescription] = useState('Selecione uma obra para ver sua descrição.');
 
-  const [selectedWork, setSelectedWork] = useState({ title: 'Escolha sua obra' });
+  const [selectedWork, setSelectedWork] = useState(null);
   const [works, setWorks] = useState([]);
   const [displayedComments, setDisplayedComments] = useState([]);
   
@@ -46,8 +46,22 @@ function AdminPage() {
     }
   };
 
+  const fetchAllComments = async () => {
+    try {
+      const response = await fetch('http://127.0.0.1:8000/feedback/avaliacoes/all_feedbacks/');
+      if (!response.ok) throw new Error('Falha ao carregar comentários.');
+      const data = await response.json();
+      if (data.status === 'success') {
+        setAllComments(data.feedbacks || []);
+      }
+    } catch (err) {
+      console.error(err);
+    }
+  };
+
   useEffect(() => {
     fetchWorks();
+    fetchAllComments();
 
     function handleClickOutside(event) {
       if (popupRef.current && !popupRef.current.contains(event.target)) {
@@ -73,6 +87,7 @@ function AdminPage() {
     setWorkName(work.nome_obra);
     setIsDropdownOpen(false);
     setAdminView('description');
+    
     const filteredComments = allUserComments.filter(comment => comment.workId === work.id);
     setDisplayedComments(filteredComments);
   };
@@ -82,6 +97,10 @@ function AdminPage() {
       setAuthorName('');
       setWorkName('');
       setWorkDescription('');
+    }
+    if (view === 'quiz' && !selectedWork) {
+        alert("Por favor, selecione uma obra primeiro para adicionar uma questão.");
+        return;
     }
     setAdminView(view);
     setIsOptionsPopupOpen(false);
@@ -118,10 +137,14 @@ function AdminPage() {
   };
 
   const handleSaveQuestion = async () => {
+    if (!selectedWork) {
+      setError("Nenhuma obra selecionada para associar a questão.");
+      return;
+    }
     setLoading(true);
     setError('');
     
-    const payload = {
+    const questionPayload = {
       texto_enunciado: quizQuestion,
       nivel: quizDifficulty,
       letra_correta: correctAnswer,
@@ -132,22 +155,40 @@ function AdminPage() {
     };
 
     try {
-      const response = await fetch('http://127.0.0.1:8000/quiz/perguntas/sql_create/', {
+      const createQuestionResponse = await fetch('http://127.0.0.1:8000/quiz/perguntas/sql_create/', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(payload),
+        body: JSON.stringify(questionPayload),
       });
-      if (!response.ok) throw new Error('Falha ao criar a pergunta.');
       
-      const data = await response.json();
-      if (data.status === 'success') {
-        alert(`Pergunta criada com sucesso! ID: ${data.pergunta_id}`);
-        setQuizQuestion('');
-        setQuizOptions(['', '', '', '']);
-        setCorrectAnswer('');
-      } else {
-        throw new Error(data.message || 'Erro desconhecido ao criar pergunta.');
+      const createData = await createQuestionResponse.json();
+      if (!createQuestionResponse.ok || createData.status !== 'success') {
+        throw new Error(createData.message || 'Falha ao criar a pergunta.');
       }
+      
+      const newQuestionId = createData.pergunta_id;
+
+      const associatePayload = {
+        pergunta_id: newQuestionId,
+        obra_id: selectedWork.id,
+      };
+
+      const associateResponse = await fetch('http://127.0.0.1:8000/quiz/pergunta-obras/associate/', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(associatePayload),
+      });
+
+      const associateData = await associateResponse.json();
+      if (!associateResponse.ok || associateData.status !== 'success') {
+        throw new Error(associateData.message || 'Falha ao associar pergunta à obra.');
+      }
+
+      alert(`Pergunta criada e associada à obra "${selectedWork.nome_obra}" com sucesso!`);
+      setQuizQuestion('');
+      setQuizOptions(['', '', '', '']);
+      setCorrectAnswer('');
+
     } catch (err) {
       setError(err.message);
     } finally {
@@ -227,7 +268,7 @@ function AdminPage() {
           
           <div className="w-[85%] relative">
             <button onClick={() => setIsDropdownOpen(!isDropdownOpen)} className="w-full bg-[#FDF6E3] text-[#C48836] font-semibold py-2 px-4 rounded-lg flex justify-between items-center shadow-md">
-              <span className="truncate">{selectedWork.title || 'Escolha sua obra'}</span>
+              <span className="truncate">{selectedWork ? selectedWork.nome_obra : 'Escolha sua obra'}</span>
               <svg className={`w-5 h-5 transition-transform duration-300 flex-shrink-0 ${isDropdownOpen ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" /></svg>
             </button>
             {isDropdownOpen && (
@@ -243,10 +284,10 @@ function AdminPage() {
 
           <div className="w-[85%] flex-grow bg-[#FDF6E3] p-3 rounded-lg shadow-inner overflow-y-auto space-y-2" style={{ maxHeight: 'calc(100% - 12rem)' }}>
             {displayedComments.length > 0 ? (
-              displayedComments.map((comment, index) => (
-                <div key={index} className="bg-white/50 p-2 rounded">
-                  <p className="font-bold text-amber-800">{comment.user}</p>
-                  <p className="text-sm text-gray-700">{comment.text}</p>
+              displayedComments.map((comment) => (
+                <div key={comment.id_avaliacao} className="bg-white/50 p-2 rounded">
+                  <p className="font-bold text-amber-800">{comment.nome_usuario}</p>
+                  <p className="text-sm text-gray-700">{comment.comentarios}</p>
                 </div>
               ))
             ) : (
@@ -259,7 +300,7 @@ function AdminPage() {
               <div className="absolute bottom-full mb-2 w-full bg-[#FDF6E3] rounded-lg shadow-xl z-10 overflow-hidden">
                 <button onClick={() => handleAdminAction('addWork')} className="block w-full text-left px-4 py-3 text-[#C48836] font-semibold hover:bg-yellow-100 transition-colors duration-200">Adicionar Obras</button>
                 <button onClick={() => handleAdminAction('editWork')} className="block w-full text-left px-4 py-3 text-[#C48836] font-semibold hover:bg-yellow-100 transition-colors duration-200 border-t border-amber-700/20">Alterar Obras</button>
-                <button onClick={() => handleAdminAction('quiz')} className="block w-full text-left px-4 py-3 text-[#C48836] font-semibold hover:bg-yellow-100 transition-colors duration-200 border-t border-amber-700/20">Alterar Quiz</button>
+                <button onClick={() => handleAdminAction('quiz')} className="block w-full text-left px-4 py-3 text-[#C48836] font-semibold hover:bg-yellow-100 transition-colors duration-200 border-t border-amber-700/20">Adicionar Questão</button>
               </div>
             )}
             <button onClick={() => setIsOptionsPopupOpen(!isOptionsPopupOpen)} className="w-full bg-[#663300] text-white font-bold py-3 rounded-lg hover:bg-opacity-80 transition-all duration-300 shadow-md flex items-center justify-center space-x-2">
