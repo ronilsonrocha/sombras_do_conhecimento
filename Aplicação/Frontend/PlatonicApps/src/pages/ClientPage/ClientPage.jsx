@@ -100,7 +100,7 @@ function ClientPage() {
           <p className="text-xl text-[#C48836] font-bold truncate">{userName || 'Usuário'}</p>
         </div>
 
-        <div><h1 className="text-5xl font-bold text-white">Tela Cliente</h1></div>
+        <div><h1 className="text-5xl font-bold text-white">Tela Usuário</h1></div>
 
         <div>
           <Link to="/login">
