@@ -1,0 +1,37 @@
+Clonar o repositorio do github
+Backend
+Navegue até a pasta do backend:
+cd aplicacao/backend/server/
+Crie um ambiente virtual:
+python3 -m venv venv
+Ative o ambiente virtual:
+No Linux/macOS: source venv/bin/activate
+Instale as dependências do Python:
+pip install -r requirements.txt # ele ira instalar tudo que esta no arquivo requirements.txt
+Abra o arquivo aplicacao/backend/server/mito_de_platao/settings.py
+DATABASES = {
+    'default': {
+        'ENGINE': 'django.db.backends.postgresql',
+        'NAME': '<nome_do_banco>',      
+        'USER': '<seu_usuario>',        
+        'PASSWORD': '<sua_senha_segura>',
+        'HOST': 'localhost',       
+        'PORT': '5432',
+    }
+}
+Preencha com a senha do seu postgres e criei um banco de dados com o nome sombras_db e coloca sua senha do postgresql
+Execute as migrações do banco de dados: (Com o venv ainda ativado)
+python manage.py migrate
+Criei um superusuario pois ele será seu login de administrador 
+python manage.py createsuperuser
+Sugestão colocar como admin@gmail.com
+Para rodar o Backend 
+python manage.py runserver
+
+Frontend 
+Navegue até a pasta do frontend:
+cd aplicacao/Frontend/PlatonicApps
+Instale as dependências do Node.js:
+npm install
+Inicie o servidor frontend:
+npm run dev
