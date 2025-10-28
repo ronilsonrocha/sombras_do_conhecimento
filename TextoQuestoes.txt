@@ -43,7 +43,7 @@ GLÁUCON: Concordo contigo, tanto quanto sou capaz de te compreender.
 A) Em uma floresta
 B) Em uma casa escura
 C) Dentro de uma caverna
-D) Em um navio
+    D) Em um navio
 ✅ Resposta: C
 
 2. O que as pessoas veem na parede da caverna?
