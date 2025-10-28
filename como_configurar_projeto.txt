@@ -3,7 +3,7 @@ Backend
 Navegue até a pasta do backend:
 cd aplicacao/backend/server/
 Crie um ambiente virtual:
-python3 -m venv venv
+python3.13 -m venv venv
 Ative o ambiente virtual:
 No Linux/macOS: source venv/bin/activate
 Instale as dependências do Python:
@@ -21,7 +21,7 @@ DATABASES = {
 }
 Preencha com a senha do seu postgres e criei um banco de dados com o nome sombras_db e coloca sua senha do postgresql
 Execute as migrações do banco de dados: (Com o venv ainda ativado)
-python manage.py migrate
+python manage.py migrate  # Cria as tabelas no banco automaticamente
 Criei um superusuario pois ele será seu login de administrador 
 python manage.py createsuperuser
 Sugestão colocar como admin@gmail.com
